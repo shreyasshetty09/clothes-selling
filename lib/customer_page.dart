@@ -87,6 +87,8 @@ class _CustomerPageState extends State<CustomerPage> {
               itemCount: _products.length,
               itemBuilder: (context, index) {
                 var product = _products[index];
+                double priceInRupees =
+                    double.tryParse(product['price'].toString()) ?? 0.0;
                 return Card(
                   margin: EdgeInsets.all(8.0),
                   shape: RoundedRectangleBorder(
@@ -113,7 +115,7 @@ class _CustomerPageState extends State<CustomerPage> {
                           style: TextStyle(color: Colors.grey[700]),
                         ),
                         Text(
-                          'Price: ${product['price']}',
+                          'Price: ₹${priceInRupees.toStringAsFixed(2)}',
                           style: TextStyle(color: Colors.green),
                         ),
                       ],
@@ -154,6 +156,8 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double priceInRupees = double.tryParse(product['price'].toString()) ?? 0.0;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(product['name']),
@@ -177,7 +181,7 @@ class ProductDetailPage extends StatelessWidget {
             ),
             SizedBox(height: 8.0),
             Text(
-              'Price: ${product['price']}',
+              'Price: ₹${priceInRupees.toStringAsFixed(2)}',
               style: TextStyle(color: Colors.green),
             ),
             SizedBox(height: 16.0),
@@ -226,10 +230,10 @@ class CartPage extends StatelessWidget {
             builder: (context, snapshot) {
               if (!snapshot.hasData) return CircularProgressIndicator();
               var product = snapshot.data!;
-              double price =
+              double priceInRupees =
                   double.tryParse(product['price'].toString()) ?? 0.0;
               int quantity = cart[productId]!;
-              totalAmount += price * quantity;
+              totalAmount += priceInRupees * quantity;
               return Card(
                 margin: EdgeInsets.all(8.0),
                 shape: RoundedRectangleBorder(
@@ -250,7 +254,7 @@ class CartPage extends StatelessWidget {
                   ),
                   subtitle: Text('Quantity: $quantity'),
                   trailing: Text(
-                    'Total: \$${(price * quantity).toStringAsFixed(2)}',
+                    'Total: ₹${(priceInRupees * quantity).toStringAsFixed(2)}',
                     style: TextStyle(color: Colors.green),
                   ),
                 ),
@@ -315,7 +319,7 @@ class CartPage extends StatelessWidget {
                   decoration: InputDecoration(labelText: 'State'),
                 ),
                 SizedBox(height: 16.0),
-                Text('Total Amount: \$${totalAmount.toStringAsFixed(2)}'),
+                Text('Total Amount: ₹${totalAmount.toStringAsFixed(2)}'),
               ],
             ),
           ),
@@ -367,114 +371,40 @@ class CartPage extends StatelessWidget {
           FirebaseFirestore.instance.collection('clothes').doc(productId);
       DocumentSnapshot productSnapshot = await productRef.get();
       var productData = productSnapshot.data() as Map<String, dynamic>;
+      double priceInRupees =
+          double.tryParse(productData['price'].toString()) ?? 0.0;
 
-      batch.update(productRef, {
-        'buyerDetails': {
-          'name': name,
-          'locality': locality,
-          'address': address,
-          'pincode': pinCode,
-          'state': state,
-        },
-        'amountCollected': (productData['amountCollected'] ?? 0) +
-            (double.tryParse(productData['price'].toString()) ?? 0.0) *
-                cart[productId]!,
+      // Creating an order entry
+      DocumentReference orderRef =
+          FirebaseFirestore.instance.collection('orders').doc();
+      batch.set(orderRef, {
+        'productId': productId,
+        'productName': productData['name'],
+        'quantity': cart[productId],
+        'totalPrice': priceInRupees * cart[productId]!,
+        'customerName': name,
+        'locality': locality,
+        'address': address,
+        'pinCode': pinCode,
+        'state': state,
+        'timestamp': FieldValue.serverTimestamp(),
       });
     }
 
+    // Commit the batch
     await batch.commit();
+
+    // Clear the cart after placing the order
+    cart.clear();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-            'Order placed successfully and will be received within 7 days.'),
-        behavior: SnackBarBehavior.floating,
+        content: Text('Order placed successfully!'),
         backgroundColor: Colors.green,
       ),
     );
-  }
-}
 
-class ViewProductsPage extends StatelessWidget {
-  final String email;
-
-  ViewProductsPage({required this.email});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('View Products'),
-        backgroundColor: Colors.purple,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('clothes')
-            .where('sellerEmail', isEqualTo: email)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No products found.'));
-          }
-
-          return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var product = snapshot.data!.docs[index];
-              var data = product.data() as Map<String, dynamic>;
-
-              var buyerDetails = data['buyerDetails'] ?? {};
-              var amountCollected = data['amountCollected']?.toString() ?? '0';
-
-              return Card(
-                margin: EdgeInsets.all(8.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0),
-                ),
-                elevation: 5.0,
-                child: ListTile(
-                  contentPadding: EdgeInsets.all(8.0),
-                  leading: Image.network(
-                    data['imageUrl'],
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  ),
-                  title: Text(
-                    data['name'],
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Description: ${data['description']}',
-                        style: TextStyle(color: Colors.grey[700]),
-                      ),
-                      Text(
-                        'Price: ${data['price']}',
-                        style: TextStyle(color: Colors.green),
-                      ),
-                      if (buyerDetails.isNotEmpty) ...[
-                        Text('Buyer: ${buyerDetails['name']}'),
-                        Text('Locality: ${buyerDetails['locality']}'),
-                        Text('Address: ${buyerDetails['address']}'),
-                        Text('Pin Code: ${buyerDetails['pincode']}'),
-                        Text('State: ${buyerDetails['state']}'),
-                      ],
-                      Text('Amount Collected: $amountCollected'),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
+    // Navigate back to the customer page
+    Navigator.pop(context);
   }
 }
