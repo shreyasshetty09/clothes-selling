@@ -1,4 +1,5 @@
-import 'package:clothes/checkout_page.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'login_page.dart';
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: LoginPage(),
+      home: SplashScreen(),
       routes: {
         '/login': (context) => LoginPage(),
         '/register': (context) => RegisterPage(),
@@ -29,8 +30,95 @@ class MyApp extends StatelessWidget {
         '/role': (context) => RolePage(),
         '/seller': (context) => SellerPage(),
         '/customer': (context) => CustomerPage(),
-        '/CheckoutPage':(context) => CheckoutPage(cart: {},),
+        '/CheckoutPage': (context) => CheckoutPage(cart: {}),
       },
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Timer(Duration(seconds: 3), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => WelcomeScreen()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        color: Colors.lightBlue[50],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.shopping_bag,
+                size: 100,
+                color: Colors.purple,
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Cloth Bhej',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+              SizedBox(height: 20),
+              CircularProgressIndicator(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class WelcomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        color: Colors.lightBlue[50],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Welcome to Cloth Bhej!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                ),
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                child:
+                    Text('Get Started', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

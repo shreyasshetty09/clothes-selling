@@ -1,12 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  void _showAlertDialog(BuildContext context, String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,67 +70,30 @@ class LoginPage extends StatelessWidget {
                         password: passwordController.text,
                       );
                       if (userCredential.user != null) {
+                        _showAlertDialog(
+                            context, 'Success', 'Login successful!');
                         Navigator.pushNamed(context, '/role');
                       }
+                    } on FirebaseAuthException catch (e) {
+                      String errorMessage;
+                      switch (e.code) {
+                        case 'user-not-found':
+                          errorMessage = 'No user found for that email.';
+                          break;
+                        case 'wrong-password':
+                          errorMessage = 'Wrong password provided.';
+                          break;
+                        default:
+                          errorMessage = 'Login failed: ${e.message}';
+                          break;
+                      }
+                      _showAlertDialog(context, 'Error', errorMessage);
                     } catch (e) {
-                      print("Login failed: $e");
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Login failed: $e')),
-                      );
+                      _showAlertDialog(
+                          context, 'Error', 'An unknown error occurred.');
                     }
                   },
                   child: Text('Login', style: TextStyle(color: Colors.white)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    textStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  onPressed: () async {
-                    try {
-                      final GoogleSignInAccount? googleUser =
-                          await _googleSignIn.signIn();
-                      if (googleUser == null) {
-                        return;
-                      }
-                      final GoogleSignInAuthentication googleAuth =
-                          await googleUser.authentication;
-                      final AuthCredential credential =
-                          GoogleAuthProvider.credential(
-                        accessToken: googleAuth.accessToken,
-                        idToken: googleAuth.idToken,
-                      );
-                      UserCredential userCredential =
-                          await _auth.signInWithCredential(credential);
-                      if (userCredential.user != null) {
-                        Navigator.pushNamed(context, '/role');
-                      }
-                    } catch (e) {
-                      print("Google sign-in failed: $e");
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Google sign-in failed: $e')),
-                      );
-                    }
-                  },
-                  child: Text('Login with Google',
-                      style: TextStyle(color: Colors.white)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    textStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  onPressed: () {
-                    // Implement phone sign-in logic here
-                  },
-                  child: Text('Login with Phone',
-                      style: TextStyle(color: Colors.white)),
                 ),
                 TextButton(
                   onPressed: () {
