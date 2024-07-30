@@ -9,6 +9,9 @@ import 'role_page.dart';
 import 'seller_page.dart';
 import 'customer_page.dart';
 import 'checkout_page.dart';
+import 'admin_home_page.dart';
+import 'product_details_page.dart';
+import 'admin_login_page.dart'; // Import AdminLoginPage
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 void main() async {
@@ -30,7 +33,12 @@ class MyApp extends StatelessWidget {
         '/role': (context) => RolePage(),
         '/seller': (context) => SellerPage(),
         '/customer': (context) => CustomerPage(),
-        '/CheckoutPage': (context) => CheckoutPage(cart: {}),
+        '/checkout': (context) => CheckoutPage(cart: {}),
+        '/admin-home': (context) => AdminHomePage(),
+        '/admin-login': (context) =>
+            AdminLoginPage(), // Define route for AdminLoginPage
+        '/product-details': (context) =>
+            ProductDetailsPage(productId: '',), // Define route for ProductDetailsPage
       },
     );
   }
